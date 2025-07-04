@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เปรียบเทียบความคุ้มค่า</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background-color: #f0f0f0;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      transition: background-color 0.3s;
+    }
+
+    label {
+      margin-bottom: 0.2rem;
+    }
+
+    input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .result {
+      font-weight: bold;
+      margin-top: 0.3rem;
+    }
+
+    .better {
+      background-color: #d4edda !important; /* เขียว */
+    }
+
+    .worse {
+      background-color: #f8d7da !important; /* แดง */
+    }
+
+    .neutral {
+      background-color: #ffffff !important; /* ขาว */
+    }
+  </style>
+</head>
+<body>
+  <h2>เปรียบเทียบความคุ้มค่า</h2>
+
+  <div class="row neutral" id="row1">
+    <label for="amount1">ปริมาณ (หน่วย)</label>
+    <input type="number" id="amount1" placeholder="เช่น 500">
+    <label for="price1">ราคา (บาท)</label>
+    <input type="number" id="price1" placeholder="เช่น 100">
+    <div class="result" id="result1">หน่วย/บาท: -</div>
+  </div>
+
+  <div class="row neutral" id="row2">
+    <label for="amount2">ปริมาณ (หน่วย)</label>
+    <input type="number" id="amount2" placeholder="เช่น 400">
+    <label for="price2">ราคา (บาท)</label>
+    <input type="number" id="price2" placeholder="เช่น 80">
+    <div class="result" id="result2">หน่วย/บาท: -</div>
+  </div>
+
+  <div class="row neutral" id="row3">
+    <label for="amount3">ปริมาณ (หน่วย)</label>
+    <input type="number" id="amount3" placeholder="เช่น 300">
+    <label for="price3">ราคา (บาท)</label>
+    <input type="number" id="price3" placeholder="เช่น 90">
+    <div class="result" id="result3">หน่วย/บาท: -</div>
+  </div>
+
+  <script>
+    const inputIds = ["amount1", "price1", "amount2", "price2", "amount3", "price3"];
+    inputIds.forEach(id => {
+      document.getElementById(id).addEventListener("input", calculate);
+    });
+
+    function calculate() {
+      const rows = [
+        { amount: parseFloat(document.getElementById("amount1").value), price: parseFloat(document.getElementById("price1").value), row: document.getElementById("row1"), result: document.getElementById("result1") },
+        { amount: parseFloat(document.getElementById("amount2").value), price: parseFloat(document.getElementById("price2").value), row: document.getElementById("row2"), result: document.getElementById("result2") },
+        { amount: parseFloat(document.getElementById("amount3").value), price: parseFloat(document.getElementById("price3").value), row: document.getElementById("row3"), result: document.getElementById("result3") }
+      ];
+
+      let maxValue = -Infinity;
+      let values = [];
+
+      rows.forEach((item, index) => {
+        item.row.classList.remove("better", "worse", "neutral");
+
+        if (item.amount > 0 && item.price > 0) {
+          const unitPerBaht = item.amount / item.price;
+          values[index] = unitPerBaht;
+          item.result.textContent = `หน่วย/บาท: ${unitPerBaht.toFixed(2)}`;
+          if (unitPerBaht > maxValue) {
+            maxValue = unitPerBaht;
+          }
+        } else {
+          values[index] = null;
+          item.result.textContent = `หน่วย/บาท: -`;
+        }
+      });
+
+      rows.forEach((item, index) => {
+        if (values[index] === null) {
+          item.row.classList.add("neutral");
+        } else if (values[index] === maxValue) {
+          item.row.classList.add("better");
+        } else {
+          item.row.classList.add("worse");
+        }
+      });
+    }
+  </script>
+</body>
+</html>
