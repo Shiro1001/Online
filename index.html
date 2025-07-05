@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>เปรียบเทียบสินค้าจากภาพหรือกรอกเอง</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -19,7 +21,7 @@
       border-radius: 10px;
       transition: background-color 0.3s;
     }
-    input[type=file], input[type=number] {
+    input[type=file], input[type=number], button {
       display: block;
       margin-top: 0.5rem;
       padding: 0.5rem;
@@ -31,6 +33,11 @@
     .better { background-color: #d4edda !important; }
     .worse { background-color: #f8d7da !important; }
     .neutral { background-color: #ffffff !important; }
+    #imagePreview {
+      max-width: 100%;
+      margin-top: 1rem;
+    }
+    .crop-controls { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -38,7 +45,12 @@
 
   <div class="row neutral" id="row1">
     <p><strong>สินค้า 1</strong></p>
-    <input type="file" accept="image/*" onchange="processImage(event, 0)">
+    <input type="file" accept="image/*" onchange="loadImage(event)">
+    <div class="crop-controls">
+      <button onclick="cropAndOcr('amount0')">เลือกปริมาณ</button>
+      <button onclick="cropAndOcr('price0')">เลือกราคา</button>
+    </div>
+    <img id="imagePreview" style="display:none"/>
     <input type="number" placeholder="ปริมาณ (เช่น 700)" onchange="manualInput(0)" id="amount0">
     <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(0)" id="price0">
     <div class="result" id="result1">หน่วย/บาท: -</div>
@@ -67,11 +79,40 @@
       { amount: null, price: null, element: document.getElementById("row3"), result: document.getElementById("result3") }
     ];
 
+    let cropper;
+
+    function loadImage(event) {
+      const image = document.getElementById("imagePreview");
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        image.src = reader.result;
+        image.style.display = 'block';
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(image, { viewMode: 1 });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function cropAndOcr(targetId) {
+      if (!cropper) return alert("กรุณาอัปโหลดภาพก่อน");
+      const croppedCanvas = cropper.getCroppedCanvas();
+      Tesseract.recognize(croppedCanvas, 'tha+eng').then(({ data: { text } }) => {
+        const match = text.match(/\d+(\.\d+)?/);
+        if (match) {
+          document.getElementById(targetId).value = match[0];
+          const index = parseInt(targetId.replace(/\D/g, ''));
+          manualInput(index);
+        } else {
+          alert("ไม่พบตัวเลขในข้อความที่เลือก");
+        }
+      });
+    }
+
     function processImage(event, index) {
       const file = event.target.files[0];
       if (!file) return;
-
-      rows[index].result.textContent = 'กำลังประมวลผล...';
 
       const reader = new FileReader();
       reader.onload = () => {
