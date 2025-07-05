@@ -1,168 +1,148 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เปรียบเทียบสินค้าจากภาพหรือกรอกเอง</title>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>เปรียบเทียบความคุ้มค่า</title>
   <style>
     body {
       font-family: sans-serif;
+      margin: 0;
       padding: 1rem;
       background-color: #f0f0f0;
     }
-    h2 { text-align: center; }
-    .row {
-      background-color: #fff;
-      padding: 1rem;
+
+    h2 {
+      text-align: center;
       margin-bottom: 1rem;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: column;
+      background-color: #ffffff;
+      padding: 1rem;
       border-radius: 10px;
+      margin-bottom: 1rem;
       transition: background-color 0.3s;
     }
-    input[type=file], input[type=number], button {
-      display: block;
-      margin-top: 0.5rem;
+
+    label {
+      margin-bottom: 0.2rem;
+    }
+
+    input {
       padding: 0.5rem;
       font-size: 1rem;
-      width: 100%;
-      box-sizing: border-box;
+      margin-bottom: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
-    .result { margin-top: 0.5rem; font-weight: bold; }
-    .better { background-color: #d4edda !important; }
-    .worse { background-color: #f8d7da !important; }
-    .neutral { background-color: #ffffff !important; }
-    #imagePreview {
-      max-width: 100%;
-      margin-top: 1rem;
+
+    .result {
+      font-weight: bold;
+      margin-top: 0.3rem;
     }
-    .crop-controls { display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 0.5rem; }
+
+    .better {
+      background-color: #d4edda !important; /* เขียว */
+    }
+
+    .worse {
+      background-color: #f8d7da !important; /* แดง */
+    }
+
+    .neutral {
+      background-color: #ffffff !important; /* ขาว */
+    }
   </style>
 </head>
 <body>
-  <h2>📸 หรือ 📝 กรอกเองเพื่อเปรียบเทียบสินค้า</h2>
+  <h2>เปรียบเทียบความคุ้มค่า</h2>
 
   <div class="row neutral" id="row1">
-    <p><strong>สินค้า 1</strong></p>
-    <input type="file" accept="image/*" onchange="loadImage(event)">
-    <div class="crop-controls">
-      <button onclick="cropAndOcr('amount0')">เลือกปริมาณ</button>
-      <button onclick="cropAndOcr('price0')">เลือกราคา</button>
-    </div>
-    <img id="imagePreview" style="display:none"/>
-    <input type="number" placeholder="ปริมาณ (เช่น 700)" onchange="manualInput(0)" id="amount0">
-    <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(0)" id="price0">
+    <label for="amount1">ปริมาณ (หน่วย)</label>
+    <input type="number" id="amount1" placeholder="เช่น 500" />
+    <label for="price1">ราคา (บาท)</label>
+    <input type="number" id="price1" placeholder="เช่น 100" />
     <div class="result" id="result1">หน่วย/บาท: -</div>
   </div>
 
   <div class="row neutral" id="row2">
-    <p><strong>สินค้า 2</strong></p>
-    <input type="file" accept="image/*" onchange="processImage(event, 1)">
-    <input type="number" placeholder="ปริมาณ (เช่น 500)" onchange="manualInput(1)" id="amount1">
-    <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(1)" id="price1">
+    <label for="amount2">ปริมาณ (หน่วย)</label>
+    <input type="number" id="amount2" placeholder="เช่น 400" />
+    <label for="price2">ราคา (บาท)</label>
+    <input type="number" id="price2" placeholder="เช่น 80" />
     <div class="result" id="result2">หน่วย/บาท: -</div>
   </div>
 
   <div class="row neutral" id="row3">
-    <p><strong>สินค้า 3</strong></p>
-    <input type="file" accept="image/*" onchange="processImage(event, 2)">
-    <input type="number" placeholder="ปริมาณ (เช่น 300)" onchange="manualInput(2)" id="amount2">
-    <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(2)" id="price2">
+    <label for="amount3">ปริมาณ (หน่วย)</label>
+    <input type="number" id="amount3" placeholder="เช่น 300" />
+    <label for="price3">ราคา (บาท)</label>
+    <input type="number" id="price3" placeholder="เช่น 90" />
     <div class="result" id="result3">หน่วย/บาท: -</div>
   </div>
 
   <script>
-    const rows = [
-      { amount: null, price: null, element: document.getElementById("row1"), result: document.getElementById("result1") },
-      { amount: null, price: null, element: document.getElementById("row2"), result: document.getElementById("result2") },
-      { amount: null, price: null, element: document.getElementById("row3"), result: document.getElementById("result3") }
+    const inputIds = [
+      "amount1", "price1",
+      "amount2", "price2",
+      "amount3", "price3"
     ];
 
-    let cropper;
+    inputIds.forEach(id => {
+      document.getElementById(id).addEventListener("input", calculate);
+    });
 
-    function loadImage(event) {
-      const image = document.getElementById("imagePreview");
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        image.src = reader.result;
-        image.style.display = 'block';
-        if (cropper) cropper.destroy();
-        cropper = new Cropper(image, { viewMode: 1 });
-      };
-      reader.readAsDataURL(file);
-    }
+    function calculate() {
+      const rows = [
+        {
+          amount: parseFloat(document.getElementById("amount1").value),
+          price: parseFloat(document.getElementById("price1").value),
+          row: document.getElementById("row1"),
+          result: document.getElementById("result1")
+        },
+        {
+          amount: parseFloat(document.getElementById("amount2").value),
+          price: parseFloat(document.getElementById("price2").value),
+          row: document.getElementById("row2"),
+          result: document.getElementById("result2")
+        },
+        {
+          amount: parseFloat(document.getElementById("amount3").value),
+          price: parseFloat(document.getElementById("price3").value),
+          row: document.getElementById("row3"),
+          result: document.getElementById("result3")
+        }
+      ];
 
-    function cropAndOcr(targetId) {
-      if (!cropper) return alert("กรุณาอัปโหลดภาพก่อน");
-      const croppedCanvas = cropper.getCroppedCanvas();
-      Tesseract.recognize(croppedCanvas, 'tha+eng').then(({ data: { text } }) => {
-        const match = text.match(/\d+(\.\d+)?/);
-        if (match) {
-          document.getElementById(targetId).value = match[0];
-          const index = parseInt(targetId.replace(/\D/g, ''));
-          manualInput(index);
+      let maxValue = -Infinity;
+      let values = [];
+
+      rows.forEach((item, index) => {
+        item.row.classList.remove("better", "worse", "neutral");
+
+        if (item.amount > 0 && item.price > 0) {
+          const unitPerBaht = item.amount / item.price;
+          values[index] = unitPerBaht;
+          item.result.textContent = `หน่วย/บาท: ${unitPerBaht.toFixed(2)}`;
+          if (unitPerBaht > maxValue) {
+            maxValue = unitPerBaht;
+          }
         } else {
-          alert("ไม่พบตัวเลขในข้อความที่เลือก");
+          values[index] = null;
+          item.result.textContent = `หน่วย/บาท: -`;
         }
       });
-    }
 
-    function processImage(event, index) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = () => {
-        Tesseract.recognize(reader.result, 'tha+eng').then(({ data: { text } }) => {
-          const priceMatch = text.match(/ราคา\s*(\d+(\.\d+)?)/i);
-          const volumeMatch = text.match(/(\d+(\.\d+)?)\s*(ml|ลิตร|cc|ก\.?ล)/i);
-
-          if (priceMatch) document.getElementById(`price${index}`).value = priceMatch[1];
-          if (volumeMatch) document.getElementById(`amount${index}`).value = volumeMatch[1];
-
-          manualInput(index);
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function manualInput(index) {
-      const amount = parseFloat(document.getElementById(`amount${index}`).value);
-      const price = parseFloat(document.getElementById(`price${index}`).value);
-
-      if (!isNaN(amount) && !isNaN(price) && price > 0) {
-        const value = amount / price;
-        rows[index].amount = amount;
-        rows[index].price = price;
-        rows[index].value = value;
-        rows[index].result.textContent = `หน่วย/บาท: ${value.toFixed(2)}`;
-      } else {
-        rows[index].amount = null;
-        rows[index].price = null;
-        rows[index].value = null;
-        rows[index].result.textContent = '❌ กรอกข้อมูลไม่ครบ';
-      }
-
-      compareValues();
-    }
-
-    function compareValues() {
-      let max = -Infinity;
-      rows.forEach(row => row.element.classList.remove("better", "worse", "neutral"));
-
-      const values = rows.map(r => r.value);
-      values.forEach(v => { if (v !== null && v > max) max = v; });
-
-      rows.forEach((row, i) => {
-        if (row.value === null) {
-          row.element.classList.add("neutral");
-        } else if (row.value === max) {
-          row.element.classList.add("better");
+      rows.forEach((item, index) => {
+        if (values[index] === null) {
+          item.row.classList.add("neutral");
+        } else if (values[index] === maxValue) {
+          item.row.classList.add("better");
         } else {
-          row.element.classList.add("worse");
+          item.row.classList.add("worse");
         }
       });
     }
