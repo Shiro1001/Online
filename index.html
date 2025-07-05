@@ -3,126 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เปรียบเทียบความคุ้มค่า</title>
+  <title>เปรียบเทียบสินค้าจากภาพ</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      margin: 0;
       padding: 1rem;
       background-color: #f0f0f0;
     }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 1rem;
-    }
-
+    h2 { text-align: center; }
     .row {
-      display: flex;
-      flex-direction: column;
-      background-color: #ffffff;
+      background-color: #fff;
       padding: 1rem;
-      border-radius: 10px;
       margin-bottom: 1rem;
+      border-radius: 10px;
       transition: background-color 0.3s;
     }
-
-    label {
-      margin-bottom: 0.2rem;
+    input[type=file] {
+      margin-top: 0.5rem;
     }
-
-    input {
-      padding: 0.5rem;
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    .result {
-      font-weight: bold;
-      margin-top: 0.3rem;
-    }
-
-    .better {
-      background-color: #d4edda !important; /* เขียว */
-    }
-
-    .worse {
-      background-color: #f8d7da !important; /* แดง */
-    }
-
-    .neutral {
-      background-color: #ffffff !important; /* ขาว */
-    }
+    .result { margin-top: 0.5rem; font-weight: bold; }
+    .better { background-color: #d4edda !important; }
+    .worse { background-color: #f8d7da !important; }
+    .neutral { background-color: #ffffff !important; }
   </style>
 </head>
 <body>
-  <h2>เปรียบเทียบความคุ้มค่า</h2>
+  <h2>📸 เปรียบเทียบสินค้า 3 ชิ้นจากภาพ</h2>
 
   <div class="row neutral" id="row1">
-    <label for="amount1">ปริมาณ (หน่วย)</label>
-    <input type="number" id="amount1" placeholder="เช่น 500">
-    <label for="price1">ราคา (บาท)</label>
-    <input type="number" id="price1" placeholder="เช่น 100">
+    <p><strong>สินค้า 1</strong></p>
+    <input type="file" accept="image/*" onchange="processImage(event, 0)">
     <div class="result" id="result1">หน่วย/บาท: -</div>
   </div>
 
   <div class="row neutral" id="row2">
-    <label for="amount2">ปริมาณ (หน่วย)</label>
-    <input type="number" id="amount2" placeholder="เช่น 400">
-    <label for="price2">ราคา (บาท)</label>
-    <input type="number" id="price2" placeholder="เช่น 80">
+    <p><strong>สินค้า 2</strong></p>
+    <input type="file" accept="image/*" onchange="processImage(event, 1)">
     <div class="result" id="result2">หน่วย/บาท: -</div>
   </div>
 
   <div class="row neutral" id="row3">
-    <label for="amount3">ปริมาณ (หน่วย)</label>
-    <input type="number" id="amount3" placeholder="เช่น 300">
-    <label for="price3">ราคา (บาท)</label>
-    <input type="number" id="price3" placeholder="เช่น 90">
+    <p><strong>สินค้า 3</strong></p>
+    <input type="file" accept="image/*" onchange="processImage(event, 2)">
     <div class="result" id="result3">หน่วย/บาท: -</div>
   </div>
 
   <script>
-    const inputIds = ["amount1", "price1", "amount2", "price2", "amount3", "price3"];
-    inputIds.forEach(id => {
-      document.getElementById(id).addEventListener("input", calculate);
-    });
+    const rows = [
+      { amount: null, price: null, element: document.getElementById("row1"), result: document.getElementById("result1") },
+      { amount: null, price: null, element: document.getElementById("row2"), result: document.getElementById("result2") },
+      { amount: null, price: null, element: document.getElementById("row3"), result: document.getElementById("result3") }
+    ];
 
-    function calculate() {
-      const rows = [
-        { amount: parseFloat(document.getElementById("amount1").value), price: parseFloat(document.getElementById("price1").value), row: document.getElementById("row1"), result: document.getElementById("result1") },
-        { amount: parseFloat(document.getElementById("amount2").value), price: parseFloat(document.getElementById("price2").value), row: document.getElementById("row2"), result: document.getElementById("result2") },
-        { amount: parseFloat(document.getElementById("amount3").value), price: parseFloat(document.getElementById("price3").value), row: document.getElementById("row3"), result: document.getElementById("result3") }
-      ];
+    function processImage(event, index) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-      let maxValue = -Infinity;
-      let values = [];
+      rows[index].result.textContent = 'กำลังประมวลผล...';
 
-      rows.forEach((item, index) => {
-        item.row.classList.remove("better", "worse", "neutral");
+      const reader = new FileReader();
+      reader.onload = () => {
+        Tesseract.recognize(reader.result, 'tha+eng').then(({ data: { text } }) => {
+          const priceMatch = text.match(/ราคา\s*(\d+(\.\d+)?)/i);
+          const volumeMatch = text.match(/(\d+(\.\d+)?)\s*(ml|ลิตร|cc|ก\.?ล)/i);
 
-        if (item.amount > 0 && item.price > 0) {
-          const unitPerBaht = item.amount / item.price;
-          values[index] = unitPerBaht;
-          item.result.textContent = `หน่วย/บาท: ${unitPerBaht.toFixed(2)}`;
-          if (unitPerBaht > maxValue) {
-            maxValue = unitPerBaht;
+          if (priceMatch && volumeMatch) {
+            const price = parseFloat(priceMatch[1]);
+            const amount = parseFloat(volumeMatch[1]);
+            const value = amount / price;
+
+            rows[index].amount = amount;
+            rows[index].price = price;
+            rows[index].value = value;
+            rows[index].result.textContent = `หน่วย/บาท: ${value.toFixed(2)}`;
+          } else {
+            rows[index].amount = null;
+            rows[index].price = null;
+            rows[index].value = null;
+            rows[index].result.textContent = '❌ ไม่พบปริมาณหรือราคา';
           }
-        } else {
-          values[index] = null;
-          item.result.textContent = `หน่วย/บาท: -`;
-        }
-      });
 
-      rows.forEach((item, index) => {
-        if (values[index] === null) {
-          item.row.classList.add("neutral");
-        } else if (values[index] === maxValue) {
-          item.row.classList.add("better");
+          compareValues();
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function compareValues() {
+      let max = -Infinity;
+      rows.forEach(row => row.element.classList.remove("better", "worse", "neutral"));
+
+      const values = rows.map(r => r.value);
+      values.forEach(v => { if (v !== null && v > max) max = v; });
+
+      rows.forEach((row, i) => {
+        if (row.value === null) {
+          row.element.classList.add("neutral");
+        } else if (row.value === max) {
+          row.element.classList.add("better");
         } else {
-          item.row.classList.add("worse");
+          row.element.classList.add("worse");
         }
       });
     }
