@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>เปรียบเทียบสินค้าจากภาพ</title>
+  <title>เปรียบเทียบสินค้าจากภาพหรือกรอกเอง</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <style>
     body {
@@ -19,8 +19,13 @@
       border-radius: 10px;
       transition: background-color 0.3s;
     }
-    input[type=file] {
+    input[type=file], input[type=number] {
+      display: block;
       margin-top: 0.5rem;
+      padding: 0.5rem;
+      font-size: 1rem;
+      width: 100%;
+      box-sizing: border-box;
     }
     .result { margin-top: 0.5rem; font-weight: bold; }
     .better { background-color: #d4edda !important; }
@@ -29,23 +34,29 @@
   </style>
 </head>
 <body>
-  <h2>📸 เปรียบเทียบสินค้า 3 ชิ้นจากภาพ</h2>
+  <h2>📸 หรือ 📝 กรอกเองเพื่อเปรียบเทียบสินค้า</h2>
 
   <div class="row neutral" id="row1">
     <p><strong>สินค้า 1</strong></p>
     <input type="file" accept="image/*" onchange="processImage(event, 0)">
+    <input type="number" placeholder="ปริมาณ (เช่น 700)" onchange="manualInput(0)" id="amount0">
+    <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(0)" id="price0">
     <div class="result" id="result1">หน่วย/บาท: -</div>
   </div>
 
   <div class="row neutral" id="row2">
     <p><strong>สินค้า 2</strong></p>
     <input type="file" accept="image/*" onchange="processImage(event, 1)">
+    <input type="number" placeholder="ปริมาณ (เช่น 500)" onchange="manualInput(1)" id="amount1">
+    <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(1)" id="price1">
     <div class="result" id="result2">หน่วย/บาท: -</div>
   </div>
 
   <div class="row neutral" id="row3">
     <p><strong>สินค้า 3</strong></p>
     <input type="file" accept="image/*" onchange="processImage(event, 2)">
+    <input type="number" placeholder="ปริมาณ (เช่น 300)" onchange="manualInput(2)" id="amount2">
+    <input type="number" placeholder="ราคา (บาท)" onchange="manualInput(2)" id="price2">
     <div class="result" id="result3">หน่วย/บาท: -</div>
   </div>
 
@@ -68,26 +79,33 @@
           const priceMatch = text.match(/ราคา\s*(\d+(\.\d+)?)/i);
           const volumeMatch = text.match(/(\d+(\.\d+)?)\s*(ml|ลิตร|cc|ก\.?ล)/i);
 
-          if (priceMatch && volumeMatch) {
-            const price = parseFloat(priceMatch[1]);
-            const amount = parseFloat(volumeMatch[1]);
-            const value = amount / price;
+          if (priceMatch) document.getElementById(`price${index}`).value = priceMatch[1];
+          if (volumeMatch) document.getElementById(`amount${index}`).value = volumeMatch[1];
 
-            rows[index].amount = amount;
-            rows[index].price = price;
-            rows[index].value = value;
-            rows[index].result.textContent = `หน่วย/บาท: ${value.toFixed(2)}`;
-          } else {
-            rows[index].amount = null;
-            rows[index].price = null;
-            rows[index].value = null;
-            rows[index].result.textContent = '❌ ไม่พบปริมาณหรือราคา';
-          }
-
-          compareValues();
+          manualInput(index);
         });
       };
       reader.readAsDataURL(file);
+    }
+
+    function manualInput(index) {
+      const amount = parseFloat(document.getElementById(`amount${index}`).value);
+      const price = parseFloat(document.getElementById(`price${index}`).value);
+
+      if (!isNaN(amount) && !isNaN(price) && price > 0) {
+        const value = amount / price;
+        rows[index].amount = amount;
+        rows[index].price = price;
+        rows[index].value = value;
+        rows[index].result.textContent = `หน่วย/บาท: ${value.toFixed(2)}`;
+      } else {
+        rows[index].amount = null;
+        rows[index].price = null;
+        rows[index].value = null;
+        rows[index].result.textContent = '❌ กรอกข้อมูลไม่ครบ';
+      }
+
+      compareValues();
     }
 
     function compareValues() {
